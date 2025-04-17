@@ -24,7 +24,7 @@ Google Apps Scriptを使用したLINE風のチャットボットインターフ�
 
 以下のURLからGoogle Apps Scriptプロジェクトにアクセスできます：
 
-[Google Apps Scriptプロジェクト](https://script.google.com/u/0/home/projects/1-kSIAyP5tOxEN-H1s4Uh82q-2enmSs9ezy9LfOK7bl4TVSjjKVgCOyq6/copy)
+[参照スプレッドシート](https://docs.google.com/spreadsheets/d/1fjU3otAbQtXWkwriEP63NbYEg9hToszAYEwzbwIfgyQ/copy)
 
 ## 技術仕様
 
