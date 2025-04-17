@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#06c755">
+    <title>LINE風チャット</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet">
+    <style>
+        /* 基本スタイル */
+        html, body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #B3D9FF; /* LINEの背景色 */
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            overflow: hidden;
+            -webkit-text-size-adjust: 100%;
+        }
+        #chat-container {
+            width: 100%;
+            height: 100%;
+            background-color: #B3D9FF; /* LINEの背景色 */
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+        }
+        /* ヘッダー - LINEのヘッダー */
+        #chat-header {
+            background-color: #6FB7FF; /* LINEのヘッダー色 */
+            color: black;
+            padding: 20px 12px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            position: relative;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+        .header-icon {
+            width: 64px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: black;
+            font-size: 40px;
+        }
+        /* メッセージエリア - LINEの背景色 */
+        #chat-messages {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: #B3D9FF; /* LINEの背景色 */
+            -webkit-overflow-scrolling: touch;
+        }
+        /* メッセージ共通スタイル */
+        .message {
+            margin-bottom: 24px;
+            max-width: 85%;
+            word-wrap: break-word;
+            padding: 24px 28px;
+            border-radius: 32px;
+            position: relative;
+            line-height: 1.5;
+            font-size: 48px; /* フォントサイズ調整 */
+        }
+        .message-container {
+            margin-bottom: 32px;
+            position: relative;
+        }
+        .message-time {
+            font-size: 24px;
+            color: #888;
+            margin-top: 8px;
+            display: block;
+            margin-right: 8px;
+            margin-left: 8px;
+        }
+        /* ユーザーメッセージ - LINEの緑色吹き出し */
+        .message.user {
+            margin-left: auto;
+            background-color: #92E05D; /* LINEの緑色 */
+            color: black;
+            border-bottom-right-radius: 0;
+        }
+        .user-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+        /* AIメッセージ - LINEの白色吹き出し */
+        .message.ai {
+            margin-right: auto;
+            background-color: white;
+            color: black;
+            border-bottom-left-radius: 0;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        .ai-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        /* 入力フォーム - LINEスタイル */
+        #chat-form {
+            display: flex;
+            padding: 16px 20px;
+            background-color: #FFFFFF;
+            align-items: center;
+            border-top: 2px solid #e6e6e6;
+            position: relative;
+            z-index: 10;
+        }
+        #plus-button {
+            color: #888;
+            font-size: 48px;
+            padding: 0 16px;
+        }
+        #chat-input {
+            flex-grow: 1;
+            margin: 0 16px;
+            padding: 20px 24px;
+            border: 2px solid #ddd;
+            border-radius: 32px;
+            font-size: 40px;
+            outline: none;
+            background-color: white;
+        }
+        button {
+            background-color: transparent;
+            color: #06c755;
+            border: none;
+            cursor: pointer;
+            font-size: 48px;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.3s ease;
+            min-width: 64px;
+            min-height: 64px;
+        }
+        button:hover {
+            color: #05a648;
+        }
+        #voice-button {
+            color: #06c755;
+        }
+        #voice-button.active {
+            color: #ff7f7f;
+        }
+        
+        /* タッチ操作の最適化 */
+        .header-icon, button {
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .header-icon:active, button:active {
+            opacity: 0.7;
+        }
+        
+        /* スマホ向け最適化 - すべての画面サイズで適用 */
+        /* 安全領域の確保（iPhoneX以降） */
+        @supports (padding-bottom: env(safe-area-inset-bottom)) {
+            #chat-form {
+                padding-bottom: calc(14px + env(safe-area-inset-bottom));
+            }
+            
+            #chat-header {
+                padding-top: calc(16px + env(safe-area-inset-top));
+            }
+        }
+        
+        /* 小さい画面向けの調整 */
+        @media (max-width: 480px) {
+            .message {
+                max-width: 90%;
+                font-size: 40px;
+                padding: 20px 24px;
+            }
+            
+            #chat-header {
+                padding: 16px 12px;
+                font-size: 40px;
+            }
+            
+            #chat-input {
+                font-size: 36px;
+                padding: 16px 20px;
+            }
+            
+            #chat-messages {
+                padding: 20px;
+            }
+            
+            .message-time {
+                font-size: 20px;
+            }
+            
+            button {
+                font-size: 40px;
+            }
+        }
+        
+        /* 縦向き/横向きの対応 */
+        @media (orientation: landscape) and (max-height: 500px) {
+            #chat-container {
+                height: 100vh;
+            }
+            
+            #chat-header {
+                padding: 8px;
+            }
+            
+            #chat-messages {
+                padding: 8px;
+            }
+            
+            .message {
+                margin-bottom: 8px;
+                padding: 8px 12px;
+            }
+        }
+        
+        /* アニメーション効果 */
+        .message {
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-container">
+        <div id="chat-header">
+            <!-- ヘッダーは空にする -->
+        </div>
+        <div id="chat-messages"></div>
+        <form id="chat-form">
+            <button type="button" id="voice-button" onclick="toggleVoiceInput()" title="音声入力">
+                <i class="fas fa-microphone"></i>
+            </button>
+            <input type="text" id="chat-input" placeholder="メッセージを入力...">
+            <button type="submit" title="メッセージを送信">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </form>
+    </div>
+    <script>
+        const chatMessages = document.getElementById('chat-messages');
+        const chatForm = document.getElementById('chat-form');
+        const chatInput = document.getElementById('chat-input');
+        const userId = Math.random().toString(36).substring(7);
+        let recognition;
+        let isListening = false;
+
+        // 音声認識の初期化
+        function initializeSpeechRecognition() {
+            recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'ja-JP';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;
+                chatInput.value = transcript;
+                sendMessage();
+            };
+
+            recognition.onend = function() {
+                isListening = false;
+                updateVoiceButtonState();
+            };
+
+            recognition.onerror = function(event) {
+                console.error('音声認識エラー:', event.error);
+                isListening = false;
+                updateVoiceButtonState();
+            };
+        }
+
+        // 音声入力の切り替え
+        function toggleVoiceInput() {
+            if (!isListening) {
+                recognition.start();
+                isListening = true;
+            } else {
+                recognition.stop();
+                isListening = false;
+            }
+            updateVoiceButtonState();
+        }
+
+        // 音声ボタンの状態更新
+        function updateVoiceButtonState() {
+            const voiceButton = document.getElementById("voice-button");
+            if (isListening) {
+                voiceButton.classList.add("active");
+                voiceButton.innerHTML = '<i class="fas fa-stop"></i>';
+            } else {
+                voiceButton.classList.remove("active");
+                voiceButton.innerHTML = '<i class="fas fa-microphone"></i>';
+            }
+        }
+
+        // メッセージ送信処理
+        function sendMessage() {
+            const message = chatInput.value.trim();
+            if (message) {
+                addMessage('あなた', message, 'user');
+                chatInput.value = '';
+
+                try {
+                    google.script.run
+                        .withSuccessHandler((response) => {
+                            addMessage('AI', response, 'ai');
+                        })
+                        .withFailureHandler((error) => {
+                            console.error('Error:', error);
+                            addMessage('システム', 'エラーが発生しました。もう一度お試しください。', 'ai');
+                        })
+                        .processMessage(userId, message);
+                } catch (error) {
+                    console.error('Error:', error);
+                    addMessage('システム', 'エラーが発生しました。もう一度お試しください。', 'ai');
+                }
+            }
+        }
+
+        // メッセージの追加
+        function addMessage(sender, text, type) {
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const timeString = `${hours}:${minutes}`;
+            
+            const containerDiv = document.createElement('div');
+            containerDiv.classList.add(type === 'user' ? 'user-container' : 'ai-container');
+            
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message', type);
+            messageElement.textContent = text;
+            
+            const timeElement = document.createElement('span');
+            timeElement.classList.add('message-time');
+            timeElement.textContent = timeString;
+            
+            containerDiv.appendChild(messageElement);
+            containerDiv.appendChild(timeElement);
+            
+            chatMessages.appendChild(containerDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // 初期メッセージの追加
+        function addWelcomeMessage() {
+            // 初期メッセージなし
+        }
+
+        // フォームの送信イベント
+        chatForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            sendMessage();
+        });
+
+        // ヘッダーアイコンのクリックイベント
+        document.querySelectorAll('.header-icon').forEach(icon => {
+            icon.addEventListener('click', function() {
+                if (this.querySelector('.fa-arrow-left')) {
+                    alert('前の画面に戻る機能は現在開発中です');
+                } else if (this.querySelector('.fa-search')) {
+                    alert('検索機能は現在開発中です');
+                } else if (this.querySelector('.fa-phone')) {
+                    alert('通話機能は現在開発中です');
+                } else if (this.querySelector('.fa-bars')) {
+                    alert('メニュー機能は現在開発中です');
+                }
+            });
+        });
+        
+        // 初期化
+        window.onload = function() {
+            initializeSpeechRecognition();
+            
+            // 挨拶メッセージを追加
+            addWelcomeMessage();
+            
+            // スマホでの表示を最適化
+            document.documentElement.style.height = '100%';
+            document.body.style.height = '100%';
+        };
+    </script>
+</body>
+</html>
